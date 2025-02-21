@@ -1,7 +1,9 @@
 import { useCallback } from "react";
 
 // TODO: change url when building to production
-const url = "http://localhost:3000";
+// https://ttrpgmanager-backend.vercel.app
+// http://localhost:3000
+const url = "https://ttrpgmanager-backend.vercel.app";
 const urldb = "/db";
 
 const useDB = () => {
