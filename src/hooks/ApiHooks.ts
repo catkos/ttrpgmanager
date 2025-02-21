@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 
+// TODO: change url when building to production
 const url = "http://localhost:3000";
 const urldb = "/db";
 
@@ -11,6 +12,7 @@ const useDB = () => {
   ): Promise<string> => {
     const options: RequestInit = {
       method: "POST",
+      mode: "cors",
       headers: {
         "Content-Type": "application/json",
       },
