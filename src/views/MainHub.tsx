@@ -1,31 +1,40 @@
 import { useEffect, useState } from "react";
 import NoteForm from "../components/NoteForm";
 import { useDB } from "../hooks/ApiHooks";
+import Transcription from "../components/Transcription";
 
 const MainHub = () => {
-  const { getNotes } = useDB();
+  const { getNotes, deleteNote } = useDB();
   const [addNewNote, setAddNewNote] = useState<boolean>(false);
   const [isNoteFormOpen, setIsNoteFormOpen] = useState<boolean>(false);
+  const [noteDeleted, setNoteDeleted] = useState<boolean>(false);
   const [noteFormData, setNoteFormData] = useState<
     {
+      id: string;
       title: string;
       description: string;
       date: { seconds: number };
     }[]
   >([]);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
 
-  /* render the notes */
+  // render the notes
   const renderNotes = (
-    notes: { title: string; description: string; date: { seconds: number } }[]
+    notes: {
+      id: string;
+      title: string;
+      description: string;
+      date: { seconds: number };
+    }[]
   ) => {
     return (
-      <div className="grid lg:grid-cols-4 lg:gap-4 lg:p-5 divide-black divide-y-4">
+      <div className="overflow-scroll overscroll-contain grid lg:grid-cols-4 lg:gap-4 lg:p-5 divide-black divide-y-4">
         {notes.map((note, i) => {
           const dateObj = new Date(note.date.seconds * 1000);
           const formattedDate =
-            dateObj.toLocaleDateString("de-DE") +
+            dateObj.toLocaleDateString("fi-FI") +
             " " +
-            dateObj.toLocaleTimeString("de-DE", {
+            dateObj.toLocaleTimeString("fi-FI", {
               hour: "2-digit",
               minute: "2-digit",
             });
@@ -37,7 +46,10 @@ const MainHub = () => {
               <div className="flex justify-between items-center">
                 <p>{formattedDate}</p>
                 {/* TODO: add button functionality - delete */}
-                <button className="hover:text-red cursor-pointer">
+                <button
+                  onClick={() => handleDeleteNote(note.id)}
+                  className="hover:text-red cursor-pointer"
+                >
                   <svg
                     aria-hidden="true"
                     fill="none"
@@ -64,6 +76,18 @@ const MainHub = () => {
     );
   };
 
+  // handle deleting note
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await deleteNote(id);
+      console.log("deleted");
+      // set state to trigger useffect refresh
+      setNoteDeleted((prev) => !prev);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   // handle new note modal
   const handleNewNoteButton = () => {
     setIsNoteFormOpen(!isNoteFormOpen);
@@ -77,42 +101,55 @@ const MainHub = () => {
 
   // get all notes when user has added a new note
   useEffect(() => {
-    // get all notes
     const handleNotes = async () => {
       try {
         const data = await getNotes("notes");
-        console.log("data:", data);
         setNoteFormData(data);
-        //reset add new note to false
+        // reset add new note to false
         setAddNewNote(false);
       } catch (e) {
         console.log(e);
       }
     };
     handleNotes();
-  }, [addNewNote, getNotes]);
+  }, [addNewNote, getNotes, noteDeleted]);
+
+  // start audio streaming on btn press
+  const handleRecording = () => {
+    setIsRecording(!isRecording);
+  };
 
   return (
     <article className="">
-      {isNoteFormOpen && <NoteForm onFormSubmit={handleNoteFormSubmit} />}
+      {isNoteFormOpen && (
+        <NoteForm
+          onFormSubmit={handleNoteFormSubmit}
+          onClose={() => setIsNoteFormOpen(false)}
+        />
+      )}
       <div className="flex flex-col md:flex-row bg-black h-full md:h-screen gap-2">
         <section className="flex flex-col w-1/3 flex-grow my-4 ml-4 rounded-md bg-white text-black divide-black divide-y-4">
           <div className="bg-gray-300 p-5 w-full flex flex-col gap-5">
             <h1 className="uppercase">Campaign name</h1>
             <div>
-              <p>Start the session to begin recoding!</p>
+              <p>Start the session to begin recording!</p>
             </div>
-            <button className="cursor-pointer uppercase text-white font-bold rounded-full bg-green p-2 w-full text-center hover:drop-shadow-xl">
-              Start session
+            <button
+              onClick={handleRecording}
+              className={`cursor-pointer uppercase text-white font-bold rounded-full p-2 w-full text-center hover:scale-105 transition duration-300 ${
+                isRecording ? "bg-red" : "bg-green"
+              }`}
+            >
+              {isRecording ? "Stop session" : "Start session"}
             </button>
           </div>
-          <div className="p-5">
-            <h2>Transcription Log:</h2>
-            <div></div>
+          <div className="h-full flex flex-col">
+            <h2 className="flex-none px-5 py-5">Transcription Log</h2>
+            <Transcription handleRecording={isRecording} />
           </div>
         </section>
         {/* NOTES SECTION */}
-        <section className="flex flex-col w-full my-4 mr-4 bg-white rounded-md h-full">
+        <section className="flex flex-col w-full my-4 mr-4 bg-white rounded-md h-auto">
           <div className="flex flex-col gap-5 p-5 border-b-4 border-black ">
             <h2 className="uppercase">Notes</h2>
             <button

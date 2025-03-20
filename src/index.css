@@ -9,7 +9,7 @@
   --color-yellow: #B8B42D;
   --color-red: #DD403A;
 
-  --drop-shadow-xl: 7px 7px 0px var(--color-black)
+  --drop-shadow-xl: 7px 7px 0px var(--color-black);
 }
 
 @layer base {

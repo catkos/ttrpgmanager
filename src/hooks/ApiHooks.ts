@@ -1,10 +1,12 @@
+import axios from "axios";
 import { useCallback } from "react";
 
 // TODO: change url when building to production
 // https://ttrpgmanager-backend.vercel.app
 // http://localhost:3000
-const url = "https://ttrpgmanager-backend.vercel.app";
+const url = "http://localhost:3000";
 const urldb = "/db";
+const urlgpt = "/gpt";
 
 const useDB = () => {
   //save note to database
@@ -39,6 +41,20 @@ const useDB = () => {
     }
   };
 
+  // delete note from database
+  const deleteNote = async (id: string) => {
+    try {
+      const response = await axios.delete(url + urldb + "/delete/" + id, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      return response;
+    } catch (e) {
+      console.error("API Error:", e);
+      throw e;
+    }
+  };
+
   //get all documents from wanted collection
   const getNotes = useCallback(async (collectionName: string) => {
     const options: RequestInit = {
@@ -69,7 +85,26 @@ const useDB = () => {
     }
   }, []);
 
-  return { postNote, getNotes };
+  return { postNote, deleteNote, getNotes };
 };
 
-export { useDB };
+const useGPT = () => {
+  // send audio file in a formData to gpt backend
+  const postGPT = async (formData: FormData) => {
+    try {
+      const response = await axios.post(
+        url + urlgpt + "/transcribe",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      return response;
+    } catch (error) {
+      console.error("API Error:", error);
+      throw error;
+    }
+  };
+
+  return { postGPT };
+};
+
+export { useDB, useGPT };
