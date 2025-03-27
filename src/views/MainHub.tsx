@@ -2,9 +2,22 @@ import { useEffect, useState } from "react";
 import NoteForm from "../components/NoteForm";
 import { useDB } from "../hooks/ApiHooks";
 import Transcription from "../components/Transcription";
+import { useLocation } from "react-router";
+
+interface LocationState {
+  campaignId: string;
+  gameName: string;
+  campaignName: string;
+}
 
 const MainHub = () => {
   const { getNotes, deleteNote } = useDB();
+
+  const location = useLocation();
+  const state = location.state as LocationState;
+  //get game info
+  const campaignId = state?.campaignId;
+
   const [addNewNote, setAddNewNote] = useState<boolean>(false);
   const [isNoteFormOpen, setIsNoteFormOpen] = useState<boolean>(false);
   const [noteDeleted, setNoteDeleted] = useState<boolean>(false);
@@ -18,6 +31,8 @@ const MainHub = () => {
   >([]);
   const [isRecording, setIsRecording] = useState<boolean>(false);
 
+  console.log("game: ", campaignId);
+
   // render the notes
   const renderNotes = (
     notes: {
@@ -30,6 +45,8 @@ const MainHub = () => {
     return (
       <div className="overflow-scroll overscroll-contain grid lg:grid-cols-4 lg:gap-4 lg:p-5 divide-black divide-y-4">
         {notes.map((note, i) => {
+          console.log("rendering notes: ", noteDeleted, campaignId);
+
           const dateObj = new Date(note.date.seconds * 1000);
           const formattedDate =
             dateObj.toLocaleDateString("fi-FI") +
@@ -103,7 +120,7 @@ const MainHub = () => {
   useEffect(() => {
     const handleNotes = async () => {
       try {
-        const data = await getNotes("notes");
+        const data = await getNotes("notes", campaignId);
         setNoteFormData(data);
         // reset add new note to false
         setAddNewNote(false);
@@ -112,7 +129,7 @@ const MainHub = () => {
       }
     };
     handleNotes();
-  }, [addNewNote, getNotes, noteDeleted]);
+  }, [addNewNote, getNotes, noteDeleted, campaignId]);
 
   // start audio streaming on btn press
   const handleRecording = () => {
@@ -125,12 +142,13 @@ const MainHub = () => {
         <NoteForm
           onFormSubmit={handleNoteFormSubmit}
           onClose={() => setIsNoteFormOpen(false)}
+          campaignId={campaignId}
         />
       )}
       <div className="flex flex-col md:flex-row bg-black h-full md:h-screen gap-2">
         <section className="flex flex-col w-1/3 flex-grow my-4 ml-4 rounded-md bg-white text-black divide-black divide-y-4">
           <div className="bg-gray-300 p-5 w-full flex flex-col gap-5">
-            <h1 className="uppercase">Campaign name</h1>
+            <h1 className="uppercase">campaign name here</h1>
             <div>
               <p>Start the session to begin recording!</p>
             </div>
@@ -145,7 +163,10 @@ const MainHub = () => {
           </div>
           <div className="h-full flex flex-col">
             <h2 className="flex-none px-5 py-5">Transcription Log</h2>
-            <Transcription handleRecording={isRecording} />
+            <Transcription
+              handleRecording={isRecording}
+              campaignId={campaignId}
+            />
           </div>
         </section>
         {/* NOTES SECTION */}

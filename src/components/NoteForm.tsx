@@ -4,9 +4,14 @@ import { useDB } from "../hooks/ApiHooks";
 interface NoteFormProps {
   onFormSubmit: (date: { title: string; description: string }) => void;
   onClose: () => void;
+  campaignId: string;
 }
 
-const NoteForm: React.FC<NoteFormProps> = ({ onFormSubmit, onClose }) => {
+const NoteForm: React.FC<NoteFormProps> = ({
+  onFormSubmit,
+  onClose,
+  campaignId,
+}) => {
   const { postNote } = useDB();
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -19,7 +24,8 @@ const NoteForm: React.FC<NoteFormProps> = ({ onFormSubmit, onClose }) => {
       return "description cant be empty";
     } else {
       try {
-        const data = await postNote(title, description);
+        // TODO: add game ID
+        const data = await postNote(title, description, campaignId);
         console.log(data);
         // send form data to parent
         onFormSubmit({ title, description });

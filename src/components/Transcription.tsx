@@ -1,19 +1,36 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useGPT } from "../hooks/ApiHooks";
+import { useDB, useGPT } from "../hooks/ApiHooks";
 
 interface TranscriptionProps {
   handleRecording: boolean;
+  campaignId: string;
 }
 
 interface TranscriptionEntry {
-  text: string;
-  date: Date;
+  id: string;
+  log: {
+    duration: number;
+    language: string;
+    task: string;
+    text: string;
+  };
+  campaignId: string;
+  date: {
+    seconds: number;
+    nanoseconds: number;
+  };
 }
 
-const Transcription: React.FC<TranscriptionProps> = ({ handleRecording }) => {
+const Transcription: React.FC<TranscriptionProps> = ({
+  handleRecording,
+  campaignId,
+}) => {
   const [transcriptions, setTranscriptions] = useState<TranscriptionEntry[]>(
     []
   );
+  const [newTranscription, setNewTranscription] = useState<boolean>(false);
+
+  const { getNotes } = useDB();
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -49,17 +66,25 @@ const Transcription: React.FC<TranscriptionProps> = ({ handleRecording }) => {
         const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
         const formData = new FormData();
         formData.append("audio", audioBlob, "recording.webm");
+        formData.append("campaignId", campaignId);
 
         const response = await postGPT(formData);
 
+        // if transcription has been received, refresh transcription log
+        if (response) {
+          console.log("ayyy");
+          setNewTranscription(true);
+        }
+
         // add text
+        /*
         setTranscriptions((prev) => [
           ...prev,
           {
             text: response.data.text,
             date: new Date(response.data.date),
           },
-        ]);
+        ]);*/
 
         if (isRecording.current) {
           setTimeout(startNewRecording, 0); // Aloita uusi tallennus heti edellisen loputtua.
@@ -88,23 +113,36 @@ const Transcription: React.FC<TranscriptionProps> = ({ handleRecording }) => {
     }
   };
 
-  // render new log
-  const renderTranscription = () => {
+  // render transription logs
+  const renderTranscriptions = (transcriptions: TranscriptionEntry[]) => {
     return transcriptions.map((entry, index) => (
       <div key={index} className="border-l-2 pl-2 border-green">
         <p className="text-xs">
-          {entry.date.toLocaleString("fi-FI", {
+          {new Date(entry.date.seconds * 1000).toLocaleString("fi-FI", {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
             hour12: false,
           })}
         </p>
-
-        <p className="bg-white">{entry.text}</p>
+        <p className="bg-white">{entry.log.text}</p>
       </div>
     ));
   };
+
+  // get transcription logs, refresh when new transcription has been sent
+  useEffect(() => {
+    const handleNotes = async () => {
+      try {
+        const data = await getNotes("gpt", campaignId);
+        setTranscriptions(data);
+        setNewTranscription(false);
+      } catch (e) {
+        console.log(e);
+      }
+    };
+    handleNotes();
+  }, [getNotes, campaignId, newTranscription]);
 
   // handle recording
   useEffect(() => {
@@ -127,7 +165,7 @@ const Transcription: React.FC<TranscriptionProps> = ({ handleRecording }) => {
       ref={scrollRef}
       className="grow h-20 px-5 pb-5 overflow-scroll overscroll-contain flex flex-col gap-3"
     >
-      {renderTranscription()}
+      {renderTranscriptions(transcriptions)}
     </div>
   );
 };
